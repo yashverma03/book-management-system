@@ -1,0 +1,33 @@
+name: book-management-system
+
+services:
+  db:
+    container_name: book-management-system-db
+    image: postgres
+    networks:
+      - webnet
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_DB: ${DB_DATABASE}
+      PG_DATA: /var/lib/postgresql/data
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    volumes:
+      - book-management-system-data:/var/lib/postgresql/book-management-system-data
+
+  adminer:
+    container_name: book-management-system-adminer
+    image: adminer
+    depends_on:
+      - db
+    restart: always
+    networks:
+      - webnet
+    ports:
+      - 8080:8080
+
+networks:
+  webnet:
+volumes:
+  book-management-system-data:
