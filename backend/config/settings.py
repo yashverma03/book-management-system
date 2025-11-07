@@ -179,11 +179,19 @@ LOGGING = {
             'format': '{levelname} {message}',
             'style': '{',
         },
+        'sql': {
+            'format': '[SQL] {message}',
+            'style': '{',
+        },
     },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
+        },
+        'sql_console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'sql',
         },
     },
     'root': {
@@ -194,6 +202,11 @@ LOGGING = {
         'utils.exception_handler': {
             'handlers': ['console'],
             'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.db.backends': {
+            'handlers': ['sql_console'],
+            'level': 'DEBUG',
             'propagate': False,
         },
     },
