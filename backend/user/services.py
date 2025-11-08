@@ -5,7 +5,7 @@ from django.conf import settings
 from user.models import User
 from django.utils import timezone as django_timezone
 from utils.exceptions import ConflictException, NotFoundException, UnauthorizedException
-from user.serializers import UserSerializer
+from utils.model_serializer import model_to_dict
 
 class UserService:
   def create_user(self, dto):
@@ -15,7 +15,8 @@ class UserService:
     dto['password'] = self.hash_password(dto['password'])
     user = User.objects.create(**dto)
     token = self.generate_token(user)
-    user_data = UserSerializer(user).data
+    user_data = model_to_dict(user)
+    user_data.pop('password')
     return {
       'token': token,
       'user': user_data,
@@ -96,8 +97,8 @@ class UserService:
     # Generate token
     token = self.generate_token(user)
 
-    # Serialize user (password is already excluded in UserSerializer)
-    user_data = UserSerializer(user).data
+    user_data = model_to_dict(user)
+    user_data.pop('password')
 
     return {
       'token': token,

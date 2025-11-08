@@ -1,6 +1,6 @@
 from django.utils import timezone as django_timezone
 from book.models import Book
-from book.serializers import BookSerializer
+from utils.model_serializer import model_to_dict
 from utils.exceptions import NotFoundException, ConflictException
 
 
@@ -29,7 +29,9 @@ class BookService:
     dto['added_by_id'] = userId
 
     book = Book.objects.create(**dto)
-    book_data = BookSerializer(book).data
+    # Refresh to get related data
+    book.refresh_from_db()
+    book_data = model_to_dict(book)
     return book_data
 
   def get_books(self, filters=None) -> list:
@@ -47,7 +49,20 @@ class BookService:
     Returns:
         list: List of serialized book data with nested user data
     """
-    queryset = Book.objects.filter(deleted_at=None).select_related('added_by')
+    queryset = Book.objects.filter(deleted_at=None).select_related('added_by').only(
+      'id',
+      'title',
+      'author',
+      'description',
+      'price',
+      'isbn',
+      'added_by_id',
+      'created_at',
+      'added_by__id',
+      'added_by__email',
+      'added_by__name',
+      'added_by__role'
+    )
 
     if filters:
       # Filter by title (case-insensitive partial match)
@@ -67,12 +82,13 @@ class BookService:
         queryset = queryset.filter(added_by_id=filters['added_by_user'])
 
     books = queryset.order_by('-created_at')
-    return [BookSerializer(book).data for book in books]
+    return [model_to_dict(book) for book in books]
 
   def get_book_by_id(self, book_id) -> dict:
     """
     Get a book by ID.
     Includes user data via left join.
+    Only selects main columns, excluding metadata (created_at, updated_at, deleted_at).
 
     Args:
         book_id: Book ID
@@ -84,8 +100,19 @@ class BookService:
         NotFoundException: If book not found or deleted
     """
     try:
-      book = Book.objects.select_related('added_by').get(id=book_id, deleted_at=None)
-      book_data = BookSerializer(book).data
+      book = Book.objects.select_related('added_by').only(
+        'id',
+        'title',
+        'author',
+        'description',
+        'price',
+        'isbn',
+        'added_by__id',
+        'added_by__email',
+        'added_by__name',
+        'added_by__role'
+      ).get(id=book_id, deleted_at=None)
+      book_data = model_to_dict(book)
       return book_data
     except Book.DoesNotExist:
       raise NotFoundException('Book not found')
@@ -121,7 +148,8 @@ class BookService:
       setattr(book, key, value)
 
     book.save()
-    book_data = BookSerializer(book).data
+    book.refresh_from_db()
+    book_data = model_to_dict(book)
     return book_data
 
   def delete_book(self, book_id) -> None:
