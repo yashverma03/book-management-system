@@ -37,30 +37,15 @@ def roles(allowed_roles):
     def decorator(view_func):
         @wraps(view_func)
         def wrapped_view(request, *args, **kwargs):
-            # Check if user is authenticated
-            if not hasattr(request, 'user') or not request.user:
-                raise UnauthorizedException('Authentication required.')
-
-            # Check if user has a role (supports both dict and attribute access)
-            if isinstance(request.user, dict):
-                if 'role' not in request.user:
-                    raise ForbiddenException('User role not found.')
-                user_role = request.user.get('role')
-            elif hasattr(request.user, 'role'):
-                user_role = request.user.role
-            else:
+            user = getattr(request, '_user', None)
+            user_role = getattr(user, 'role', None)
+            if not user_role:
                 raise ForbiddenException('User role not found.')
-            if hasattr(user_role, 'value'):
-                user_role_value = user_role.value
-            else:
-                user_role_value = str(user_role)
 
             # Check if user's role is in allowed roles
-            if user_role_value not in allowed_role_values:
+            if user_role not in allowed_role_values:
                 role_names = ', '.join([role.value if hasattr(role, 'value') else str(role) for role in allowed_roles])
-                raise ForbiddenException(
-                    f'Access denied. Required roles: {role_names}'
-                )
+                raise ForbiddenException(f'Access denied. Required roles: {role_names}')
 
             # User has required role, proceed with view
             return view_func(request, *args, **kwargs)

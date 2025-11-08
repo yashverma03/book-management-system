@@ -83,7 +83,7 @@ class JWTAuthMiddleware(MiddlewareMixin):
                 exc = UnauthorizedException('Invalid token payload.')
                 return self._handle_exception(request, exc)
             user = SimpleNamespace(**payload)
-            request.user = user
+            request._user = user
 
         except jwt.ExpiredSignatureError:
             exc = UnauthorizedException('Token has expired.')
