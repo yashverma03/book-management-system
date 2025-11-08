@@ -1,7 +1,8 @@
+import requests
 from django.utils import timezone as django_timezone
 from django.db.models import F
 from book.models import Book
-from utils.exceptions import NotFoundException, ConflictException
+from utils.exceptions import NotFoundException, ConflictException, ExternalAPIException
 
 class BookService:
   def create_book(self, dto, userId) -> dict:
@@ -211,3 +212,36 @@ class BookService:
 
     if updated_count == 0:
       raise NotFoundException('Book not found or already deleted')
+
+  def get_google_books(self, filters) -> dict:
+    """
+    Fetch books from Google Books API
+
+    Args:
+        filters: Dictionary with Google Books API query parameters:
+            - q: Search query (required)
+            - maxResults: Maximum number of results (optional, default: 10)
+            - startIndex: Index of first result (optional, default: 0)
+            - filter: Filter by volume type (optional)
+            - printType: Restrict to books or magazines (optional)
+            - orderBy: Sort order (optional)
+            - langRestrict: Language restriction (optional)
+            - projection: Information level (optional)
+
+    Returns:
+        dict: Response from Google Books API
+    """
+    google_books_api_url = 'https://www.googleapis.com/books/v1/volumes'
+
+    # Prepare query parameters, excluding None values
+    params = {k: v for k, v in filters.items() if v is not None}
+
+    try:
+      response = requests.get(google_books_api_url, params=params, timeout=10)
+      response.raise_for_status()  # Raise an exception for bad status codes
+      return response.json()
+    except requests.exceptions.RequestException as e:
+      raise ExternalAPIException(
+        'Failed to fetch books from Google Books API',
+        e
+      )

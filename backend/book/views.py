@@ -5,6 +5,7 @@ from drf_yasg.utils import swagger_auto_schema
 from book.dto.create_book_dto import CreateBookDto
 from book.dto.update_book_dto import UpdateBookDto
 from book.dto.get_books_dto import GetBooksDto
+from book.dto.google_books_dto import GoogleBooksDto
 from book.services import BookService
 from utils.dto_validator import DTOValidator
 from decorators.roles import roles
@@ -37,6 +38,12 @@ def update_book(request, book_id):
 def delete_book(request, book_id):
   book_service.delete_book(book_id)
   return Response({'message': 'Book deleted successfully'}, status=status.HTTP_200_OK)
+
+@roles([UserRole.ADMIN, UserRole.MANAGER])
+def get_google_books(request):
+  filters = DTOValidator.validate(GoogleBooksDto, request.query_params)
+  result = book_service.get_google_books(filters)
+  return Response(result, status=status.HTTP_200_OK)
 
 @swagger_auto_schema(
   method='get',
@@ -81,3 +88,13 @@ def book_detail(request, book_id):
     return update_book(request, book_id)
   else:  # DELETE
     return delete_book(request, book_id)
+
+@swagger_auto_schema(
+  method='get',
+  operation_summary="Get books from Google Books API",
+  query_serializer=GoogleBooksDto,
+  responses={200: 'Books from Google Books API'}
+)
+@api_view(['GET'])
+def google_books(request):
+  return get_google_books(request)
