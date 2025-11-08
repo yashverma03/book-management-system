@@ -5,7 +5,6 @@ from django.conf import settings
 from user.models import User
 from django.utils import timezone as django_timezone
 from utils.exceptions import ConflictException, NotFoundException, UnauthorizedException
-from utils.model_serializer import model_to_dict
 
 class UserService:
   def create_user(self, dto):
@@ -15,11 +14,16 @@ class UserService:
     dto['password'] = self.hash_password(dto['password'])
     user = User.objects.create(**dto)
     token = self.generate_token(user)
-    user_data = model_to_dict(user)
-    user_data.pop('password')
+    # Get user data using values() to exclude password
+    user_data = User.objects.filter(id=user.id).values(
+      'id',
+      'email',
+      'name',
+      'role'
+    ).first()
     return {
       'token': token,
-      'user': user_data,
+      'user': dict(user_data) if user_data else None,
     }
 
   def generate_token(self, user) -> str:
@@ -97,12 +101,17 @@ class UserService:
     # Generate token
     token = self.generate_token(user)
 
-    user_data = model_to_dict(user)
-    user_data.pop('password')
+    # Get user data using values() to exclude password
+    user_data = User.objects.filter(id=user.id).values(
+      'id',
+      'email',
+      'name',
+      'role'
+    ).first()
 
     return {
       'token': token,
-      'user': user_data,
+      'user': dict(user_data) if user_data else None,
     }
 
   def get_user_by_email(self, email):

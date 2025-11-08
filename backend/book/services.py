@@ -1,8 +1,7 @@
 from django.utils import timezone as django_timezone
+from django.db.models import F
 from book.models import Book
-from utils.model_serializer import model_to_dict
 from utils.exceptions import NotFoundException, ConflictException
-
 
 class BookService:
   def create_book(self, dto, userId) -> dict:
@@ -29,9 +28,23 @@ class BookService:
     dto['added_by_id'] = userId
 
     book = Book.objects.create(**dto)
-    # Refresh to get related data
-    book.refresh_from_db()
-    book_data = model_to_dict(book)
+    book_data = Book.objects.filter(id=book.id).select_related('added_by').annotate(
+      added_by_user_id=F('added_by__id'),
+      added_by_email=F('added_by__email'),
+      added_by_name=F('added_by__name'),
+      added_by_role=F('added_by__role')
+    ).values(
+      'id',
+      'title',
+      'author',
+      'description',
+      'price',
+      'isbn',
+      'added_by_user_id',
+      'added_by_email',
+      'added_by_name',
+      'added_by_role'
+    ).first()
     return book_data
 
   def get_books(self, filters=None) -> list:
@@ -49,19 +62,23 @@ class BookService:
     Returns:
         list: List of serialized book data with nested user data
     """
-    queryset = Book.objects.filter(deleted_at=None).select_related('added_by').only(
+    queryset = Book.objects.filter(deleted_at=None).select_related('added_by').annotate(
+      added_by_user_id=F('added_by__id'),
+      added_by_email=F('added_by__email'),
+      added_by_name=F('added_by__name'),
+      added_by_role=F('added_by__role')
+    ).values(
       'id',
       'title',
       'author',
       'description',
       'price',
       'isbn',
-      'added_by_id',
       'created_at',
-      'added_by__id',
-      'added_by__email',
-      'added_by__name',
-      'added_by__role'
+      'added_by_user_id',
+      'added_by_email',
+      'added_by_name',
+      'added_by_role'
     )
 
     if filters:
@@ -82,13 +99,12 @@ class BookService:
         queryset = queryset.filter(added_by_id=filters['added_by_user'])
 
     books = queryset.order_by('-created_at')
-    return [model_to_dict(book) for book in books]
+    return list(books)
 
   def get_book_by_id(self, book_id) -> dict:
     """
     Get a book by ID.
     Includes user data via left join.
-    Only selects main columns, excluding metadata (created_at, updated_at, deleted_at).
 
     Args:
         book_id: Book ID
@@ -99,23 +115,28 @@ class BookService:
     Raises:
         NotFoundException: If book not found or deleted
     """
-    try:
-      book = Book.objects.select_related('added_by').only(
-        'id',
-        'title',
-        'author',
-        'description',
-        'price',
-        'isbn',
-        'added_by__id',
-        'added_by__email',
-        'added_by__name',
-        'added_by__role'
-      ).get(id=book_id, deleted_at=None)
-      book_data = model_to_dict(book)
-      return book_data
-    except Book.DoesNotExist:
+    book_data = Book.objects.filter(id=book_id, deleted_at=None).select_related('added_by').annotate(
+      added_by_user_id=F('added_by__id'),
+      added_by_email=F('added_by__email'),
+      added_by_name=F('added_by__name'),
+      added_by_role=F('added_by__role')
+    ).values(
+      'id',
+      'title',
+      'author',
+      'description',
+      'price',
+      'isbn',
+      'added_by_user_id',
+      'added_by_email',
+      'added_by_name',
+      'added_by_role'
+    ).first()
+
+    if not book_data:
       raise NotFoundException('Book not found')
+
+    return book_data
 
   def update_book(self, book_id, dto) -> dict:
     """
@@ -148,8 +169,29 @@ class BookService:
       setattr(book, key, value)
 
     book.save()
-    book.refresh_from_db()
-    book_data = model_to_dict(book)
+
+    # Get updated book with user data using annotate and values()
+    book_data = Book.objects.filter(id=book_id).select_related('added_by').annotate(
+      added_by_user_id=F('added_by__id'),
+      added_by_email=F('added_by__email'),
+      added_by_name=F('added_by__name'),
+      added_by_role=F('added_by__role')
+    ).values(
+      'id',
+      'title',
+      'author',
+      'description',
+      'price',
+      'isbn',
+      'added_by_user_id',
+      'added_by_email',
+      'added_by_name',
+      'added_by_role'
+    ).first()
+
+    if not book_data:
+      raise NotFoundException('Book not found')
+
     return book_data
 
   def delete_book(self, book_id) -> None:
