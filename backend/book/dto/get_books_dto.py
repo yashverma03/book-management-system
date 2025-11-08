@@ -1,4 +1,5 @@
 from rest_framework import serializers
+import uuid
 
 class GetBooksDto(serializers.Serializer):
   title = serializers.CharField(
@@ -17,8 +18,8 @@ class GetBooksDto(serializers.Serializer):
     allow_blank=True,
     help_text='Filter by author (case-insensitive partial match)'
   )
-  added_by_user = serializers.CharField(
+  added_by_user = serializers.UUIDField(
     required=False,
-    allow_blank=True,
-    help_text='Filter by user ID who added the book'
+    allow_null=True,
+    help_text='Filter by user ID (UUID) who added the book'
   )
