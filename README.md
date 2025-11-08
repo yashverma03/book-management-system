@@ -43,7 +43,7 @@ python manage.py runserver 3000
 ```
 
 The application will be available at:
-- Django API: http://127.0.0.1:3000/
+- Swagger API Documentation: http://localhost:3000/swagger
 - Adminer (Database Admin): http://localhost:8080/
 
 ## Database Migrations
