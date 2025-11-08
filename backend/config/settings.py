@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'drf_yasg',
-    'user'
+    'user',
+    'book'
 ]
 
 MIDDLEWARE = [
@@ -59,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'middlewares.jwt_auth.JWTAuthMiddleware',  # Global JWT authentication middleware
 ]
 
 ROOT_URLCONF = 'config.urls'

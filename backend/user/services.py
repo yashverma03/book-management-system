@@ -36,6 +36,7 @@ class UserService:
       'user_id': str(user.id),
       'email': user.email,
       'role': user.role,
+      'is_active': True,
       'iat': now,
       'exp': now + timedelta(days=settings.JWT_EXPIRY_DAYS)
     }

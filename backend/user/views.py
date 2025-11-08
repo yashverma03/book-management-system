@@ -6,6 +6,7 @@ from user.dto.create_user_dto import CreateUserDto
 from dto.email_password_dto import EmailPasswordDto
 from user.services import UserService
 from utils.dto_validator import DTOValidator
+from decorators.is_public import is_public
 
 user_service = UserService()
 
@@ -14,6 +15,7 @@ user_service = UserService()
   operation_summary="Create a new user",
   request_body=CreateUserDto,
 )
+@is_public
 @api_view(['POST'])
 def create_user(request):
   validated_data = DTOValidator.validate(CreateUserDto, request.data)
@@ -25,6 +27,7 @@ def create_user(request):
   operation_summary="Login user",
   request_body=EmailPasswordDto,
 )
+@is_public
 @api_view(['POST'])
 def login(request):
   validated_data = DTOValidator.validate(EmailPasswordDto, request.data)
